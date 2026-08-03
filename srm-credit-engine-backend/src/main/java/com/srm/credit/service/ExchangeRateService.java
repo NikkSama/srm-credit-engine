@@ -28,7 +28,6 @@ public class ExchangeRateService {
         Currency base = resolveCurrency(request.baseCurrency());
         Currency quote = resolveCurrency(request.quoteCurrency());
 
-        //TODO: usar mapstruct
         ExchangeRate newRate = new ExchangeRate();
         newRate.setBaseCurrency(base);
         newRate.setQuoteCurrency(quote);

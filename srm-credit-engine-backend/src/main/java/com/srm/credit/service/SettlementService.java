@@ -8,6 +8,7 @@ import com.srm.credit.dto.SettlementRequest;
 import com.srm.credit.dto.SettlementResponse;
 import com.srm.credit.exception.BusinessException;
 import com.srm.credit.exception.ResourceNotFoundException;
+import com.srm.credit.mapper.SettlementMapper;
 import com.srm.credit.repository.CurrencyRepository;
 import com.srm.credit.repository.ExchangeRateRepository;
 import com.srm.credit.repository.ReceivableTypeRepository;
@@ -26,30 +27,35 @@ public class SettlementService {
     private final ReceivableTypeRepository receivableTypeRepository;
     private final ExchangeRateRepository exchangeRateRepository;
     private final SettlementRepository settlementRepository;
+    private final SettlementMapper settlementMapper;
 
     public SettlementService(PricingCalculator calculator,
                              CurrencyRepository currencyRepository,
                              ReceivableTypeRepository receivableTypeRepository,
                              ExchangeRateRepository exchangeRateRepository,
-                             SettlementRepository settlementRepository) {
+                             SettlementRepository settlementRepository,
+                             SettlementMapper settlementMapper) {
         this.calculator = calculator;
         this.currencyRepository = currencyRepository;
         this.receivableTypeRepository = receivableTypeRepository;
         this.exchangeRateRepository = exchangeRateRepository;
         this.settlementRepository = settlementRepository;
+        this.settlementMapper = settlementMapper;
     }
 
     @Transactional(readOnly = true)
-    public SettlementResponse simulate(SettlementRequest request) {
-        Context ctx = load(request);
-        PricingResult result = calculator.price(
-                request.faceValue(), request.termMonths(), request.baseRate(),
-                ctx.receivableType().getMonthlySpread(), ctx.rateValue());
-        return toResponse(null, request, ctx, result, Instant.now());
+    public SettlementResponse simulate(SettlementRequest req) {
+        return settlementMapper.toResponse(buildSettlement(req));
     }
 
     @Transactional
-    public SettlementResponse create(SettlementRequest request) {
+    public SettlementResponse create(SettlementRequest req) {
+        Settlement saved = settlementRepository.save(buildSettlement(req));
+        return settlementMapper.toResponse(saved);
+    }
+
+    /** Loads references, prices and assembles a (transient) settlement entity. */
+    private Settlement buildSettlement(SettlementRequest request) {
         Context ctx = load(request);
         PricingResult result = calculator.price(
                 request.faceValue(), request.termMonths(), request.baseRate(),
@@ -68,9 +74,7 @@ public class SettlementService {
         entity.setPresentValue(result.presentValue());
         entity.setNetValuePaid(result.netValuePaid());
         entity.setCreatedAt(Instant.now());
-
-        Settlement saved = settlementRepository.save(entity);
-        return toResponse(saved.getId(), request, ctx, result, saved.getCreatedAt());
+        return entity;
     }
 
     //valida a entrada
@@ -95,26 +99,6 @@ public class SettlementService {
                                     .formatted(request.originalCurrency(), request.paymentCurrency())));
         }
         return new Context(type, original, payment, rate, crossCurrency);
-    }
-
-    //TODO: usar mapstruct
-    private SettlementResponse toResponse(Long id, SettlementRequest request, Context ctx,
-                                          PricingResult result, Instant createdAt) {
-        return new SettlementResponse(
-                id,
-                request.assignor(),
-                ctx.receivableType().getName(),
-                request.faceValue(),
-                request.termMonths(),
-                request.baseRate(),
-                result.appliedSpread(),
-                request.originalCurrency(),
-                request.paymentCurrency(),
-                ctx.crossCurrency(),
-                ctx.rateValue(),
-                result.presentValue(),
-                result.netValuePaid(),
-                createdAt);
     }
 
     private record Context(ReceivableType receivableType, Currency original, Currency payment,
