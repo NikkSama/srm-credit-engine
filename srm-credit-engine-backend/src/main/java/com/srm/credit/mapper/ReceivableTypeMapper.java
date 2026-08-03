@@ -1,6 +1,7 @@
 package com.srm.credit.mapper;
 
 import com.srm.credit.domain.ReceivableType;
+import com.srm.credit.dto.ReceivableTypeRequest;
 import com.srm.credit.dto.ReceivableTypeResponse;
 import org.mapstruct.Mapper;
 
@@ -8,4 +9,6 @@ import org.mapstruct.Mapper;
 public interface ReceivableTypeMapper {
 
     ReceivableTypeResponse toResponse(ReceivableType type);
+
+    ReceivableType toEntity(ReceivableTypeRequest request);
 }
