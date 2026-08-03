@@ -56,4 +56,11 @@ public class GlobalExceptionHandler {
         pd.setTitle("Internal error");
         return pd;
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ProblemDetail handleIllegalArgument(IllegalArgumentException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        pd.setTitle("Invalid argument");
+        return pd;
+    }
 }
