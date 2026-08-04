@@ -15,10 +15,17 @@ import com.srm.credit.repository.ReceivableTypeRepository;
 import com.srm.credit.repository.SettlementRepository;
 import com.srm.credit.service.pricing.PricingCalculator;
 import com.srm.credit.service.pricing.PricingResult;
+import com.srm.credit.service.pricing.strategy.PricingContext;
+import com.srm.credit.service.pricing.strategy.PricingStrategyResolver;
+import java.math.BigDecimal;
 import java.time.Instant;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Business layer for settlement pricing and persistence.
+ * Creation runs in a single ACID transaction so nothing is left half-settled.
+ */
 @Service
 public class SettlementService {
 
@@ -28,26 +35,31 @@ public class SettlementService {
     private final ExchangeRateRepository exchangeRateRepository;
     private final SettlementRepository settlementRepository;
     private final SettlementMapper settlementMapper;
+    private final PricingStrategyResolver strategyResolver;
 
     public SettlementService(PricingCalculator calculator,
                              CurrencyRepository currencyRepository,
                              ReceivableTypeRepository receivableTypeRepository,
                              ExchangeRateRepository exchangeRateRepository,
                              SettlementRepository settlementRepository,
-                             SettlementMapper settlementMapper) {
+                             SettlementMapper settlementMapper,
+                             PricingStrategyResolver strategyResolver) {
         this.calculator = calculator;
         this.currencyRepository = currencyRepository;
         this.receivableTypeRepository = receivableTypeRepository;
         this.exchangeRateRepository = exchangeRateRepository;
         this.settlementRepository = settlementRepository;
         this.settlementMapper = settlementMapper;
+        this.strategyResolver = strategyResolver;
     }
 
+    /** Stateless calculation used by the operator panel (no persistence). */
     @Transactional(readOnly = true)
     public SettlementResponse simulate(SettlementRequest req) {
         return settlementMapper.toResponse(buildSettlement(req));
     }
 
+    /** Prices and persists a settlement atomically. */
     @Transactional
     public SettlementResponse create(SettlementRequest req) {
         Settlement saved = settlementRepository.save(buildSettlement(req));
@@ -55,18 +67,25 @@ public class SettlementService {
     }
 
     /** Loads references, prices and assembles a (transient) settlement entity. */
-    private Settlement buildSettlement(SettlementRequest request) {
-        Context ctx = load(request);
+    private Settlement buildSettlement(SettlementRequest req) {
+        Context ctx = load(req);
+
+        String typeName = ctx.receivableType().getName();
+        PricingContext pricingCtx = new PricingContext(
+                typeName, req.faceValue(), req.termMonths(),
+                req.baseRate(), ctx.receivableType().getMonthlySpread());
+        BigDecimal spread = strategyResolver.resolve(typeName).resolveSpread(pricingCtx);
+
         PricingResult result = calculator.price(
-                request.faceValue(), request.termMonths(), request.baseRate(),
-                ctx.receivableType().getMonthlySpread(), ctx.rateValue());
+                req.faceValue(), req.termMonths(), req.baseRate(),
+                spread, ctx.rateValue());
 
         Settlement entity = new Settlement();
-        entity.setAssignor(request.assignor());
+        entity.setAssignor(req.assignor());
         entity.setReceivableType(ctx.receivableType());
-        entity.setFaceValue(request.faceValue());
-        entity.setTermMonths(request.termMonths());
-        entity.setBaseRate(request.baseRate());
+        entity.setFaceValue(req.faceValue());
+        entity.setTermMonths(req.termMonths());
+        entity.setBaseRate(req.baseRate());
         entity.setAppliedSpread(result.appliedSpread());
         entity.setOriginalCurrency(ctx.original());
         entity.setPaymentCurrency(ctx.payment());
@@ -77,33 +96,32 @@ public class SettlementService {
         return entity;
     }
 
-    //valida a entrada
-    private Context load(SettlementRequest request) {
-        ReceivableType type = receivableTypeRepository.findByName(request.receivableType())
+    private Context load(SettlementRequest req) {
+        ReceivableType type = receivableTypeRepository.findByName(req.receivableType())
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Receivable type not found: " + request.receivableType()));
+                        "Receivable type not found: " + req.receivableType()));
 
-        Currency original = currencyRepository.findByCode(request.originalCurrency())
+        Currency original = currencyRepository.findByCode(req.originalCurrency())
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Currency not found: " + request.originalCurrency()));
-        Currency payment = currencyRepository.findByCode(request.paymentCurrency())
+                        "Currency not found: " + req.originalCurrency()));
+        Currency payment = currencyRepository.findByCode(req.paymentCurrency())
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Currency not found: " + request.paymentCurrency()));
+                        "Currency not found: " + req.paymentCurrency()));
 
         ExchangeRate rate = null;
-        boolean crossCurrency = !request.originalCurrency().equalsIgnoreCase(request.paymentCurrency());
+        boolean crossCurrency = !req.originalCurrency().equalsIgnoreCase(req.paymentCurrency());
         if (crossCurrency) {
-            rate = exchangeRateRepository.findLatest(request.originalCurrency(), request.paymentCurrency())
+            rate = exchangeRateRepository.findLatest(req.originalCurrency(), req.paymentCurrency())
                     .orElseThrow(() -> new BusinessException(
                             "No exchange rate available for %s -> %s"
-                                    .formatted(request.originalCurrency(), request.paymentCurrency())));
+                                    .formatted(req.originalCurrency(), req.paymentCurrency())));
         }
         return new Context(type, original, payment, rate, crossCurrency);
     }
 
     private record Context(ReceivableType receivableType, Currency original, Currency payment,
                            ExchangeRate rate, boolean crossCurrency) {
-        java.math.BigDecimal rateValue() {
+        BigDecimal rateValue() {
             return rate == null ? null : rate.getRate();
         }
     }
