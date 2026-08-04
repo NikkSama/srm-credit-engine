@@ -1,147 +1,341 @@
-openapi: '3.0.3'
+openapi: 3.0.3
 info:
-  title: Credit Engine
-  version: '1.0.0'
+  title: SRM Credit Engine API
+  description: >
+    Multi-currency credit assignment platform. Prices receivables using a
+    risk spread sourced dynamically from the database (data-driven), applies
+    FX conversion when the payment currency differs from the title currency,
+    and persists settlements atomically.
+  version: 1.0.0
 servers:
-  - url: http://localhost:8080
-    description: Local server
+  - url: /api/v1
+    description: Base path
+
 tags:
-  - name: Exchange Rates
-    description: 'Currency engine: store and provide FX rates'
   - name: Settlements
-    description: 'Pricing and settlement of receivables'
+    description: Pricing simulation and settlement persistence
+  - name: Receivable Types
+    description: Data-driven catalog of receivable products and their spreads
+  - name: Exchange Rates
+    description: FX rate store
   - name: Reports
-    description: 'Analytical settlement statement'
+    description: Analytical, read-only endpoints
+
 paths:
-  /api/v1/exchange-rates:
-    get:
-      summary: List stored FX rates
-      operationId: listExchangeRates
-      tags:
-        - Exchange Rates
-      parameters:
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/Size'
-        - $ref: '#/components/parameters/Sort'
-      responses:
-        '200':
-          $ref: '#/components/responses/ExchangeRateResponse'
+  /settlements/simulate:
     post:
-      summary: Create an FX rate (manual/mocked integration)
-      operationId: createExchangeRate
-      tags:
-        - Exchange Rates
-      requestBody:
-        $ref: '#/components/requestBodies/ExchangeRateRequest'
-      responses:
-        '201':
-          $ref: '#/components/responses/ExchangeRateResponse'
-  /api/v1/settlements:
-    post:
-      summary: Create and settle a receivable
-      operationId: createSettlement
-      tags: 
-        - Settlements
-      requestBody:
-        $ref: '#/components/requestBodies/SettlementRequest'
-      responses:
-        '201':
-          $ref: '#/components/responses/SettlementResponse'
-  /api/v1/settlements/simulate:
-    summary: Simulate settlement without persisting it
-    post:
+      tags: [Settlements]
+      summary: Simulate a settlement (stateless, does not persist)
       operationId: simulateSettlement
-      summary: Simulate settlement without persisting it
-      tags: 
-        - Settlements
       requestBody:
-        $ref: '#/components/requestBodies/SettlementRequest'
-      responses:
-        '201':
-          $ref: '#/components/responses/SettlementResponse'
-  /api/v1/reports/settlement-statement:
-    get:
-      operationId: getSettlementStatement
-      summary: Filter settlements by assignor, payment currency and period
-      tags:
-        - Reports
-      parameters:
-        - $ref: '#/components/parameters/AssingnorParam'
-        - $ref: '#/components/parameters/FromDateParam'
-        - $ref: '#/components/parameters/ToDateParam'
-        - $ref: '#/components/parameters/PaymentCurrencyParam'
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/Size'
-        - $ref: '#/components/parameters/Sort'
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SettlementRequest'
       responses:
         '200':
-          description: OK
+          description: Pricing result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettlementResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /settlements:
+    post:
+      tags: [Settlements]
+      summary: Price and persist a settlement atomically
+      operationId: createSettlement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SettlementRequest'
+      responses:
+        '201':
+          description: Settlement created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettlementResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /receivable-types:
+    get:
+      tags: [Receivable Types]
+      summary: List receivable types (catalog driven by the database)
+      description: >
+        Adding a new receivable product requires only an INSERT into the
+        receivable_type table - no code change.
+      operationId: listReceivableTypes
+      responses:
+        '200':
+          description: Catalog of receivable types
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/SettlementStatementRow'
+                  $ref: '#/components/schemas/ReceivableTypeResponse'
+
+  /exchange-rates:
+    get:
+      tags: [Exchange Rates]
+      summary: List all stored exchange rates
+      operationId: listExchangeRates
+      responses:
+        '200':
+          description: Exchange rates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExchangeRateResponse'
+    post:
+      tags: [Exchange Rates]
+      summary: Create or update an exchange rate
+      operationId: createExchangeRate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExchangeRateRequest'
+      responses:
+        '201':
+          description: Exchange rate stored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeRateResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /reports/settlement-statement:
+    get:
+      tags: [Reports]
+      summary: Filtered, paginated settlement statement
+      operationId: getSettlementStatement
+      parameters:
+        - name: assignor
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: paymentCurrency
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 3
+        - name: from
+          in: query
+          required: false
+          description: Inclusive lower bound (ISO-8601 instant)
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          required: false
+          description: Exclusive upper bound (ISO-8601 instant)
+          schema:
+            type: string
+            format: date-time
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+      responses:
+        '200':
+          description: Paginated statement rows
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageSettlementStatementRow'
 
 components:
+  responses:
+    ValidationError:
+      description: Bean validation failure
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    NotFound:
+      description: Referenced resource not found (currency or receivable type)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+
   schemas:
+    SettlementRequest:
+      type: object
+      required:
+        - assignor
+        - receivableType
+        - faceValue
+        - termMonths
+        - baseRate
+        - originalCurrency
+        - paymentCurrency
+      properties:
+        assignor:
+          type: string
+          maxLength: 120
+          example: ACME Ltda
+        receivableType:
+          type: string
+          maxLength: 60
+          description: Name of the receivable type, resolved against the database.
+          example: DUPLICATA_MERCANTIL
+        faceValue:
+          type: number
+          format: double
+          minimum: 0.01
+          example: 10000.00
+        termMonths:
+          type: integer
+          minimum: 1
+          example: 3
+        baseRate:
+          type: number
+          format: double
+          minimum: 0.0
+          description: Monthly base rate (e.g. 0.01 = 1% a.m.)
+          example: 0.01
+        originalCurrency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          example: BRL
+        paymentCurrency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          example: USD
+
+    SettlementResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: true
+        assignor:
+          type: string
+        receivableType:
+          type: string
+        faceValue:
+          type: number
+          format: double
+        termMonths:
+          type: integer
+        baseRate:
+          type: number
+          format: double
+        appliedSpread:
+          type: number
+          format: double
+          description: Monthly spread sourced from the receivable_type table.
+        originalCurrency:
+          type: string
+        paymentCurrency:
+          type: string
+        crossCurrency:
+          type: boolean
+        exchangeRate:
+          type: number
+          format: double
+          nullable: true
+        presentValue:
+          type: number
+          format: double
+        netValuePaid:
+          type: number
+          format: double
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    ReceivableTypeResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+          example: CHEQUE_PRE_DATADO
+        monthlySpread:
+          type: number
+          format: double
+          description: Monthly risk spread (e.g. 0.025 = 2.5% a.m.)
+          example: 0.025
+
     ExchangeRateRequest:
       type: object
+      required:
+        - baseCurrency
+        - quoteCurrency
+        - rate
       properties:
         baseCurrency:
           type: string
+          minLength: 3
+          maxLength: 3
+          example: BRL
         quoteCurrency:
           type: string
-        date:
-          type: string
-          format: date-time
+          minLength: 3
+          maxLength: 3
+          example: USD
+        rate:
+          type: number
+          format: double
+          minimum: 0.00000001
+          example: 0.20
+
     ExchangeRateResponse:
       type: object
       properties:
-        id: 
+        id:
           type: integer
+          format: int64
         baseCurrency:
           type: string
         quoteCurrency:
           type: string
         rate:
           type: number
+          format: double
         validAt:
           type: string
           format: date-time
-    SettlementRequest:
-      type: object
-      properties:
-        assignor:
-          type: string
-          maxLength: 120
-          minLength: 0
-        receivableKind:
-          type: string
-          enum:
-            - DUPLICATA_MERCANTIL
-            - CHEQUE_PRE_DATADO
-        faceValue:
-          type: number
-          minimum: 0.01
-          exclusiveMinimum: false
-        termMonths:
-          type: integer
-          format: int32
-          minimum: 1
-        baseRate:
-          type: number
-          minimum: 0
-          exclusiveMinimum: false
-        originalCurrency:
-          type: string
-          minLength: 3
-          maxLength: 3
-        paymentCurrency:
-          type: string
-          minLength: 3
-          maxLength: 3
-    SettlementResponse:
+
+    SettlementStatementRow:
       type: object
       properties:
         id:
@@ -153,135 +347,49 @@ components:
           type: string
         faceValue:
           type: number
-        termMonths:
-          type: integer
-          format: int32
-        baseRate:
+          format: double
+        presentValue:
           type: number
-        appliedSpread:
+          format: double
+        netValuePaid:
           type: number
+          format: double
         originalCurrency:
           type: string
         paymentCurrency:
           type: string
-        crossCurrency:
-          type: boolean
-        exchangeRate:
-          type: number
-        presentValue:
-          type: number
-        netValuePaid:
-          type: number
         createdAt:
           type: string
           format: date-time
-    SettlementStatementRow:
+
+    PageSettlementStatementRow:
       type: object
       properties:
-        id:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/SettlementStatementRow'
+        page:
           type: integer
-        assignor:
-          type: string
-        receivableType:
-          type: string
-        faceValue:
-          type: number
-        presentValue:
-          type: number
-        netValuePaid:
-          type: number
-        createdAt:
-          type: string
-          format: date-time
-  responses:
-    BadRequest:
-      description: Bad Request
-    Unauthorized:
-      description: Unauthorized
-    NotFound:
-      description: Not Found
-    InternalServerError:
-      description: Internal Server Error
-    ExchangeRateResponse:
-      description: Exchange rate response
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ExchangeRateResponse'
-    SettlementResponse:
-      description: Settlement response
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/SettlementResponse'
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
 
-  parameters:
-    AssingnorParam:
-      name: assignor
-      in: query
-      description: Assignor name
-      required: false
-      schema:
-        type: string
-    FromDateParam:
-      name: fromDate
-      in: query
-      description: Start date for filtering
-      required: false
-      schema:
-        type: string
-        format: date-time
-    ToDateParam:
-      name: toDate
-      in: query
-      description: End date for filtering
-      required: false
-      schema:
-        type: string
-        format: date-time
-    PaymentCurrencyParam:
-      name: paymentCurrency
-      in: query
-      description: Payment currency for filtering
-      required: false
-      schema:
-        type: string
-        minLength: 3
-        maxLength: 3
-    Page:
-      name: page
-      in: query
-      description: Page number for pagination
-      required: false
-      schema:
-        type: integer
-        default: 0
-    Size:
-      name: size
-      in: query
-      description: Page size for pagination
-      required: false
-      schema:
-        type: integer
-        default: 10
-    Sort:
-      name: sort
-      in: query
-      description: "Sorting criteria in the format: property(,asc|desc). Default sort order is ascending."
-      required: false
-      schema:
-        type: string
-
-  requestBodies:
-    ExchangeRateRequest:
-      description: Exchange rate request
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ExchangeRateRequest'
-    SettlementRequest:
-      description: Settlement request
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/SettlementRequest'
+    ProblemDetail:
+      type: object
+      description: RFC 7807 problem detail
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
