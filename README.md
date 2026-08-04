@@ -74,7 +74,7 @@ curl -X POST http://localhost:8080/api/v1/settlements/simulate \
       }'
 ```
 
-A collection `SRM Credit Engine API.postman_collection.json` está na raiz do projeto backend e pode ser importada no Postman
+A collection `SRM Credit Engine API.postman_collection.json` está na pasta .postman na raiz do projeto e pode ser importada no Postman
 
 
 ## Testes
