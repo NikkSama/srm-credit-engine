@@ -8,7 +8,7 @@ import com.srm.credit.mapper.ReceivableTypeMapper;
 import com.srm.credit.repository.ReceivableTypeRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Slf4j
@@ -23,23 +23,26 @@ public class ReceivableTypeService {
         this.mapper = mapper;
     }
 
+    @Transactional(readOnly = true)
     public List<ReceivableTypeResponse> list() {
         log.debug("Listing all receivable types");
         return repository.findAll().stream().map(mapper::toResponse).toList();
     }
 
-    public ReceivableType create(ReceivableTypeRequest request) {
-        log.info("Attempting to create new receivable type with name: {}", request.name());
+    @Transactional
+    public ReceivableTypeResponse create(ReceivableTypeRequest request) {
+        log.info("Saving new receivable type in database: {}", request.name());
 
         repository.findByName(request.name()).ifPresent(existing -> {
             log.warn("Failed to create receivable type. Name already exists: {}", request.name());
             throw new BusinessException("ReceivableType with name " + request.name() + " already exists.");
         });
 
-        ReceivableType entity = mapper.toEntity(request);
-        ReceivableType saved = repository.save(entity);
+        ReceivableType entity = new ReceivableType();
+        entity.setName(request.name());
+        entity.setMonthlySpread(request.monthlySpread());
 
-        log.info("Receivable type created successfully. ID: {}, Name: {}", saved.getId(), saved.getName());
-        return saved;
+        ReceivableType saved = repository.save(entity);
+        return mapper.toResponse(saved);
     }
 }
