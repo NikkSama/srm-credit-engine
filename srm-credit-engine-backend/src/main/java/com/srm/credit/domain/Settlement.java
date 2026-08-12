@@ -1,13 +1,7 @@
 package com.srm.credit.domain;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import lombok.Getter;
@@ -15,7 +9,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "settlement")
+@Table(name = "settlement", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_settlement_prevent_race", columnNames = {"assignor", "faceValue", "createdAt"})
+})
 @Getter
 @Setter
 @NoArgsConstructor
