@@ -19,7 +19,7 @@ import com.srm.credit.service.pricing.strategy.PricingContext;
 import com.srm.credit.service.pricing.strategy.PricingStrategyResolver;
 import java.math.BigDecimal;
 import java.time.Instant;
-
+import java.time.temporal.ChronoUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -107,7 +107,10 @@ public class SettlementService {
         entity.setExchangeRate(ctx.rate());
         entity.setPresentValue(result.presentValue());
         entity.setNetValuePaid(result.netValuePaid());
-        entity.setCreatedAt(Instant.now());
+
+        // If there are two clicks within the same minute with identical data, the database will block it.
+        entity.setCreatedAt(Instant.now().truncatedTo(ChronoUnit.MINUTES));
+
         return entity;
     }
 
