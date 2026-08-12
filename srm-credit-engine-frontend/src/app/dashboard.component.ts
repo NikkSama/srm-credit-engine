@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CreditEngineService } from './credit-engine.service';
@@ -33,10 +33,13 @@ export class DashboardComponent implements OnInit {
   };
   settlementResult: SettlementResponse | null = null;
 
-  newTypeForm = { monthlySpread: 0, name: '' };
+  newTypeForm = { monthlySpread: 1.5, name: '' };
   newRateForm = { baseCurrency: 'USD', quoteCurrency: 'BRL', rate: 5.25 };
 
-  constructor(private engineService: CreditEngineService) {}
+  constructor(
+    private engineService: CreditEngineService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     this.reloadConfigurations();
@@ -54,6 +57,7 @@ export class DashboardComponent implements OnInit {
       next: (res) => this.settlementResult = res,
       error: (err) => this.handleHttpError(err)
     });
+    this.cdr.detectChanges();
   }
 
   onCreateSettlement(): void {
@@ -62,6 +66,7 @@ export class DashboardComponent implements OnInit {
       next: (res) => {
         this.settlementResult = res;
         this.successMessage = `Settlement processing authorized successfully! ID: ${res.id}`;
+        this.cdr.detectChanges();
       },
       error: (err) => this.handleHttpError(err)
     });
@@ -76,6 +81,7 @@ export class DashboardComponent implements OnInit {
         this.newTypeForm.name = '';
         this.newTypeForm.monthlySpread = 0;
         this.reloadConfigurations();
+        this.cdr.detectChanges();
       },
       error: (err) => this.handleHttpError(err)
     });
@@ -87,6 +93,7 @@ export class DashboardComponent implements OnInit {
       next: () => {
         this.successMessage = `Exchange rate for ${this.newRateForm.baseCurrency}/${this.newRateForm.quoteCurrency} updated.`;
         this.reloadConfigurations();
+        this.cdr.detectChanges();
       },
       error: (err) => this.handleHttpError(err)
     });
@@ -122,23 +129,18 @@ export class DashboardComponent implements OnInit {
   private handleHttpError(err: any): void {
     console.error('API Error Intercepted:', err);
     if (err instanceof HttpErrorResponse) {
-      if (err.error) {
-        if (err.error.detail) {
-          this.errorMessage = err.error.detail;
-          return;
-        }
-        
-        if (typeof err.error === 'string') {
-          this.errorMessage = err.error;
-          return;
-        }
+      if (err.error && err.error.detail) {
+        this.errorMessage = err.error.detail;
+      } else if (typeof err.error === 'string') {
+        this.errorMessage = err.error;
+      } else if (err.status === 0) {
+        this.errorMessage = 'Backend server is unreachable. Please check your connection or CORS settings.';
+      } else {
+        this.errorMessage = `Error ${err.status}: ${err.statusText}`;
       }
-      
-      if (err.status === 0) {
-        this.errorMessage = 'Backend server is unreachable. Please ensure Spring Boot is running on port 8080 and CORS is enabled.';
-        return;
-      }
+    } else {
+      this.errorMessage = err.message || 'An unexpected error occurred.';
     }
-    this.errorMessage = err.message || 'An unexpected communication error occurred.';
+    this.cdr.detectChanges();
   }
 }

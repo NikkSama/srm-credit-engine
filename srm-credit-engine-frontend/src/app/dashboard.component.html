@@ -158,7 +158,7 @@
         </form>
         <h4>Live Currency Matrix</h4>
         <ul>
-          <li *ngFor="let r of exchangeRates">{{ r.baseCurrency.code }} &rarr; {{ r.quoteCurrency.code }} = {{ r.rate }}</li>
+          <li *ngFor="let r of exchangeRates">{{ r.baseCurrency }} &rarr; {{ r.quoteCurrency }} = {{ r.rate }}</li>
         </ul>
       </div>
     </div>

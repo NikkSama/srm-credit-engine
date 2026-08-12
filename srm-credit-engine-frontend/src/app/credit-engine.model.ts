@@ -17,8 +17,8 @@ export interface ExchangeRateRequest {
 }
 export interface ExchangeRateResponse {
   id: number;
-  baseCurrency: { id: number; code: string; name: string };
-  quoteCurrency: { id: number; code: string; name: string };
+  baseCurrency: string;
+  quoteCurrency: string;
   rate: number;
   validAt: string;
 }
