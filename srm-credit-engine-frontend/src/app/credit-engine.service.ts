@@ -4,7 +4,10 @@ import { Observable } from 'rxjs';
 import { 
   ReceivableTypeRequest, ReceivableTypeResponse, 
   ExchangeRateRequest, ExchangeRateResponse, 
-  SettlementRequest, SettlementResponse 
+  SettlementRequest, SettlementResponse, 
+  StatementFilterRequest,
+  SettlementStatementRow,
+  PageResult
 } from './credit-engine.model';
 
 @Injectable({
@@ -38,4 +41,13 @@ export class CreditEngineService {
   createSettlement(request: SettlementRequest): Observable<SettlementResponse> {
     return this.http.post<SettlementResponse>(`${this.baseUrl}/settlements`, request);
   }
+  listSettlementStatements(filters: StatementFilterRequest, page: number = 0, size: number = 10): Observable<PageResult<SettlementStatementRow>> {
+  let params: any = { page: page.toString(), size: size.toString() };
+  if (filters.assignor) params.assignor = filters.assignor;
+  if (filters.paymentCurrency) params.paymentCurrency = filters.paymentCurrency;
+  if (filters.from) params.from = new Date(filters.from).toISOString();
+  if (filters.to) params.to = new Date(filters.to).toISOString();
+
+  return this.http.get<PageResult<SettlementStatementRow>>(`${this.baseUrl}/reports/settlement-statement`, { params });
+}
 }

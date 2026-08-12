@@ -2,9 +2,12 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CreditEngineService } from './credit-engine.service';
+import { HttpErrorResponse } from '@angular/common/http';
 import { 
   ReceivableTypeResponse, ExchangeRateResponse, 
-  SettlementRequest, SettlementResponse 
+  SettlementRequest, SettlementResponse, 
+  SettlementStatementRow,
+  StatementFilterRequest
 } from './credit-engine.model';
 
 @Component({
@@ -30,7 +33,7 @@ export class DashboardComponent implements OnInit {
   };
   settlementResult: SettlementResponse | null = null;
 
-  newTypeForm = { name: '' };
+  newTypeForm = { monthlySpread: 0, name: '' };
   newRateForm = { baseCurrency: 'USD', quoteCurrency: 'BRL', rate: 5.25 };
 
   constructor(private engineService: CreditEngineService) {}
@@ -69,8 +72,9 @@ export class DashboardComponent implements OnInit {
     this.clearMessages();
     this.engineService.createReceivableType(this.newTypeForm).subscribe({
       next: () => {
-        this.successMessage = `Receivable type '${this.newTypeForm.name}' registered successfully.`;
+        this.successMessage = `Receivable type '${this.newTypeForm}' registered successfully.`;
         this.newTypeForm.name = '';
+        this.newTypeForm.monthlySpread = 0;
         this.reloadConfigurations();
       },
       error: (err) => this.handleHttpError(err)
@@ -88,6 +92,27 @@ export class DashboardComponent implements OnInit {
     });
   }
 
+  reportFilters: StatementFilterRequest = {
+    assignor: '',
+    paymentCurrency: '',
+    from: '',
+    to: ''
+  };
+
+  reportRows: SettlementStatementRow[] = [];
+
+  onReport(): void {
+    this.clearMessages();
+    
+    this.engineService.listSettlementStatements(this.reportFilters).subscribe({
+      next: (res) => {
+        this.reportRows = res.content;
+        this.successMessage = `Settlement statements retrieved successfully. Count: ${res.content.length}`;
+      },
+      error: (err) => this.handleHttpError(err)
+    });
+  }
+
   private clearMessages(): void {
     this.successMessage = null;
     this.errorMessage = null;
@@ -95,10 +120,25 @@ export class DashboardComponent implements OnInit {
   }
 
   private handleHttpError(err: any): void {
-    if (err.error && err.error.detail) {
-      this.errorMessage = err.error.detail; 
-    } else {
-      this.errorMessage = 'Connection failure or unexpected internal error.';
+    console.error('API Error Intercepted:', err);
+    if (err instanceof HttpErrorResponse) {
+      if (err.error) {
+        if (err.error.detail) {
+          this.errorMessage = err.error.detail;
+          return;
+        }
+        
+        if (typeof err.error === 'string') {
+          this.errorMessage = err.error;
+          return;
+        }
+      }
+      
+      if (err.status === 0) {
+        this.errorMessage = 'Backend server is unreachable. Please ensure Spring Boot is running on port 8080 and CORS is enabled.';
+        return;
+      }
     }
+    this.errorMessage = err.message || 'An unexpected communication error occurred.';
   }
 }

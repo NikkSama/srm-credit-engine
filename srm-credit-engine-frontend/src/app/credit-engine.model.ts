@@ -1,6 +1,7 @@
 // --- RECEIVABLE TYPES ---
 export interface ReceivableTypeRequest {
   name: string;
+  monthlySpread: number;
 }
 export interface ReceivableTypeResponse {
   id: number;
@@ -39,4 +40,26 @@ export interface SettlementResponse {
   netValuePaid: number;
   appliedSpread: number;
   createdAt: string;
+}
+export interface StatementFilterRequest {
+  assignor?: string;
+  paymentCurrency?: string;
+  from?: string;
+  to?: string;
+}
+export interface SettlementStatementRow {
+  id: number;
+  assignor: string;
+  receivableType: string;
+  faceValue: number;
+  netValuePaid: number;
+  paymentCurrency: string;
+  createdAt: string;
+}
+export interface PageResult<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
 }
