@@ -1,0 +1,107 @@
+<div class="dashboard-container">
+  <header>
+    <h1>SRM Credit Operations Control Panel</h1>
+    <nav class="tabs">
+      <button (click)="activeTab = 'settlement'" [class.active]="activeTab === 'settlement'">Credit Desk (Settlements)</button>
+      <button (click)="activeTab = 'config'" [class.active]="activeTab === 'config'">System Setup (Rates & Types)</button>
+    </nav>
+  </header>
+
+  <div *ngIf="errorMessage" class="toast error"><strong>Blocked:</strong> {{ errorMessage }}</div>
+  <div *ngIf="successMessage" class="toast success"><strong>Success:</strong> {{ successMessage }}</div>
+
+  <main *ngIf="activeTab === 'settlement'" class="tab-content">
+    <div class="panel-grid">
+      <div class="card form-card">
+        <h3>New Settlement Request</h3>
+        <form #opsForm="ngForm">
+          <label>Assignor</label>
+          <input type="text" [(ngModel)]="settlementForm.assignor" name="assignor" required>
+
+          <label>Receivable Type</label>
+          <select [(ngModel)]="settlementForm.receivableType" name="receivableType" required>
+            <option *ngFor="let t of receivableTypes" [value]="t.name">{{ t.name }}</option>
+            <option *ngIf="receivableTypes.length === 0" value="CHEQUE_PRE_DATADO">CHEQUE_PRE_DATADO (Fallback)</option>
+          </select>
+
+          <div class="row">
+            <div>
+              <label>Face Value</label>
+              <input type="number" [(ngModel)]="settlementForm.faceValue" name="faceValue" required>
+            </div>
+            <div>
+              <label>Term (Months)</label>
+              <input type="number" [(ngModel)]="settlementForm.termMonths" name="termMonths" required>
+            </div>
+          </div>
+
+          <label>Base Monthly Rate</label>
+          <input type="number" step="0.0001" [(ngModel)]="settlementForm.baseRate" name="baseRate" required>
+
+          <div class="row">
+            <div>
+              <label>From Currency</label>
+              <input type="text" [(ngModel)]="settlementForm.originalCurrency" name="origCurr" required>
+            </div>
+            <div>
+              <label>To Currency</label>
+              <input type="text" [(ngModel)]="settlementForm.paymentCurrency" name="payCurr" required>
+            </div>
+          </div>
+
+          <div class="action-buttons">
+            <button type="button" class="btn-secondary" (click)="onSimulate()" [disabled]="!opsForm.valid">Simulate Math</button>
+            <button type="button" class="btn-primary" (click)="onCreateSettlement()" [disabled]="!opsForm.valid">Execute Transaction</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card result-card">
+        <h3>Calculation Engine Metrics</h3>
+        <div *ngIf="settlementResult" class="results-display">
+          <div class="metric"><span class="label">Applied Spread:</span> <span class="val">{{ settlementResult.appliedSpread }}</span></div>
+          <div class="metric"><span class="label">Present Value:</span> <span class="valHighlight">{{ settlementResult.presentValue | number:'1.2-2' }}</span></div>
+          <div class="metric" style="border-top: 2px solid #ccc; padding-top: 10px;">
+            <span class="label">Net Disbursed Amount:</span> <span class="valFinal">{{ settlementResult.netValuePaid | number:'1.2-2' }}</span>
+          </div>
+        </div>
+        <p *ngIf="!settlementResult" class="placeholder-text">Fill out the request and click simulate or execute to invoke pricing rules.</p>
+      </div>
+    </div>
+  </main>
+
+  <main *ngIf="activeTab === 'config'" class="tab-content">
+    <div class="panel-grid">
+      <div class="card">
+        <h3>Create Receivable Type</h3>
+        <form (ngSubmit)="onCreateType()">
+          <label>Type Code Name</label>
+          <input type="text" [(ngModel)]="newTypeForm.name" name="newTypeName" placeholder="e.g., DUPLICATA_MERCANTIL" required>
+          <button type="submit" class="btn-primary">Save Type</button>
+        </form>
+        <h4>Active System Spreads</h4>
+        <ul>
+          <li *ngFor="let t of receivableTypes">{{ t.name }} (Spread: {{ t.monthlySpread }})</li>
+        </ul>
+      </div>
+
+
+      <div class="card">
+        <h3>Upsert Foreign Exchange Rate</h3>
+        <form (ngSubmit)="onUpsertRate()">
+          <div class="row">
+            <input type="text" [(ngModel)]="newRateForm.baseCurrency" name="baseC" placeholder="Base (USD)" required>
+            <input type="text" [(ngModel)]="newRateForm.quoteCurrency" name="quoteC" placeholder="Quote (BRL)" required>
+          </div>
+          <label>Target Multiplier Rate</label>
+          <input type="number" step="0.0001" [(ngModel)]="newRateForm.rate" name="fxRate" required>
+          <button type="submit" class="btn-primary">Update FX Matrix</button>
+        </form>
+        <h4>Live Currency Matrix</h4>
+        <ul>
+          <li *ngFor="let r of exchangeRates">{{ r.baseCurrency.code }} &rarr; {{ r.quoteCurrency.code }} = {{ r.rate }}</li>
+        </ul>
+      </div>
+    </div>
+  </main>
+</div>
