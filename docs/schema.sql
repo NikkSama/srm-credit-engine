@@ -35,6 +35,9 @@ CREATE TABLE settlement (
     present_value        NUMERIC(18, 2) NOT NULL,
     net_value_paid       NUMERIC(18, 2) NOT NULL,
     created_at           TIMESTAMP      NOT NULL DEFAULT now()
+
+    CONSTRAINT uk_settlement_prevent_race UNIQUE (assignor, face_value, created_at)
+
 );
 
 CREATE INDEX idx_settlement_created_at ON settlement (created_at);

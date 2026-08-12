@@ -31,9 +31,9 @@ erDiagram
 
     SETTLEMENT {
         bigint id PK
-        varchar assignor "cedente"
+        varchar assignor UK "cedente (part of composite UK)"
         bigint receivable_type_id FK
-        numeric face_value
+        numeric face_value UK "part of composite UK"
         int term_months
         numeric base_rate
         numeric applied_spread
@@ -42,14 +42,7 @@ erDiagram
         bigint exchange_rate_id FK "null when same currency"
         numeric present_value
         numeric net_value_paid
-        timestamp created_at
+        timestamp created_at UK "part of composite UK"
         bigint version "optimistic lock"
     }
 ```
-
-## Notas de modelagem
-
-- **Precisão decimal**: todos os valores monetários usam `NUMERIC` (nunca `float`/`double`).
-- **Auditabilidade**: `settlement` guarda `base_rate` e `applied_spread` no momento da liquidação, de modo que o cálculo é reprodutível mesmo que as regras mudem no futuro.
-- **Câmbio histórico**: `exchange_rate` guarda `valid_at`; a liquidação referencia a taxa exata usada (`exchange_rate_id`).
-- **Concorrência**: coluna `version` habilita Optimistic Locking (evolução para o nível Sênior).
