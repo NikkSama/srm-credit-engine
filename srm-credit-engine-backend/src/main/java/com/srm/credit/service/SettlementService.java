@@ -19,6 +19,8 @@ import com.srm.credit.service.pricing.strategy.PricingContext;
 import com.srm.credit.service.pricing.strategy.PricingStrategyResolver;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
  * Business layer for settlement pricing and persistence.
  * Creation runs in a single ACID transaction so nothing is left half-settled.
  */
+@Slf4j
 @Service
 public class SettlementService {
 
@@ -56,13 +59,21 @@ public class SettlementService {
     /** Stateless calculation used by the operator panel (no persistence). */
     @Transactional(readOnly = true)
     public SettlementResponse simulate(SettlementRequest req) {
-        return settlementMapper.toResponse(buildSettlement(req));
+        log.info("Simulating settlement for receivable type: {}", req.receivableType());
+        Settlement transientSettlement = buildSettlement(req);
+
+        log.debug("Simulation completed. Calculated Present Value (PV): {}", transientSettlement.getPresentValue());
+        return settlementMapper.toResponse(transientSettlement);
     }
 
     /** Prices and persists a settlement atomically. */
     @Transactional
     public SettlementResponse create(SettlementRequest req) {
+        log.info("Starting settlement creation for assignor: {}, type: {}", req.assignor(), req.receivableType());
+
         Settlement saved = settlementRepository.save(buildSettlement(req));
+
+        log.info("Settlement created successfully. ID: {}, Net Paid Value: {}", saved.getId(), saved.getNetValuePaid());
         return settlementMapper.toResponse(saved);
     }
 
@@ -74,11 +85,15 @@ public class SettlementService {
         PricingContext pricingCtx = new PricingContext(
                 typeName, req.faceValue(), req.termMonths(),
                 req.baseRate(), ctx.receivableType().getMonthlySpread());
+
         BigDecimal spread = strategyResolver.resolve(typeName).resolveSpread(pricingCtx);
+        log.debug("Pricing strategy resolved for type: {}. Applied spread: {}", typeName, spread);
 
         PricingResult result = calculator.price(
                 req.faceValue(), req.termMonths(), req.baseRate(),
                 spread, ctx.rateValue());
+
+        log.debug("Pricing calculation result - PV: {}, Net Paid: {}", result.presentValue(), result.netValuePaid());
 
         Settlement entity = new Settlement();
         entity.setAssignor(req.assignor());
@@ -92,29 +107,41 @@ public class SettlementService {
         entity.setExchangeRate(ctx.rate());
         entity.setPresentValue(result.presentValue());
         entity.setNetValuePaid(result.netValuePaid());
-        entity.setCreatedAt(Instant.now());
+
+        // If there are two clicks within the same minute with identical data, the database will block it.
+        entity.setCreatedAt(Instant.now().truncatedTo(ChronoUnit.MINUTES));
+
         return entity;
     }
 
     private Context load(SettlementRequest req) {
         ReceivableType type = receivableTypeRepository.findByName(req.receivableType())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Receivable type not found: " + req.receivableType()));
+                .orElseThrow(() -> {
+                    log.warn("Receivable type not found: {}", req.receivableType());
+                    return new ResourceNotFoundException("Receivable type not found: " + req.receivableType());
+                });
 
         Currency original = currencyRepository.findByCode(req.originalCurrency())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Currency not found: " + req.originalCurrency()));
+                .orElseThrow(() -> {
+                    log.warn("Original currency not found: {}", req.originalCurrency());
+                    return new ResourceNotFoundException("Currency not found: " + req.originalCurrency());
+                });
+
         Currency payment = currencyRepository.findByCode(req.paymentCurrency())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Currency not found: " + req.paymentCurrency()));
+                .orElseThrow(() -> {
+                    log.warn("Payment currency not found: {}", req.paymentCurrency());
+                    return new ResourceNotFoundException("Currency not found: " + req.paymentCurrency());
+                });
 
         ExchangeRate rate = null;
         boolean crossCurrency = !req.originalCurrency().equalsIgnoreCase(req.paymentCurrency());
         if (crossCurrency) {
+            log.debug("Cross-currency operation detected: {} -> {}", req.originalCurrency(), req.paymentCurrency());
             rate = exchangeRateRepository.findLatest(req.originalCurrency(), req.paymentCurrency())
-                    .orElseThrow(() -> new BusinessException(
-                            "No exchange rate available for %s -> %s"
-                                    .formatted(req.originalCurrency(), req.paymentCurrency())));
+                    .orElseThrow(() -> {
+                        log.error("Missing exchange rate for critical conversion: {} -> {}", req.originalCurrency(), req.paymentCurrency());
+                        return new BusinessException("No exchange rate available for %s -> %s".formatted(req.originalCurrency(), req.paymentCurrency()));
+                    });
         }
         return new Context(type, original, payment, rate, crossCurrency);
     }

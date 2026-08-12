@@ -35,7 +35,11 @@ CREATE TABLE settlement (
     exchange_rate_id     BIGINT         REFERENCES exchange_rate (id),
     present_value        NUMERIC(18, 2) NOT NULL,
     net_value_paid       NUMERIC(18, 2) NOT NULL,
-    created_at           TIMESTAMP      NOT NULL DEFAULT now()
+    created_at           TIMESTAMP      NOT NULL DEFAULT now(),
+
+    -- A TRAVA DE CONCORRÊNCIA ADICIONADA AQUI:
+    -- Impede o mesmo cedente de lançar o mesmo valor no mesmo minuto exato
+    CONSTRAINT uk_settlement_prevent_race UNIQUE (assignor, face_value, created_at)
 );
 
 -- índice para relatórios por período

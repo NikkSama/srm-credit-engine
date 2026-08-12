@@ -15,6 +15,7 @@ Este documento registra como ferramentas de IA (LLMs) foram usadas na construç�
 | Postman Collection       | "Gerar collection com endpoints e payloads para testes manuais"                                                                    | Template dos endpoints que validei e adapti ao projeto |
 | Diagnóstico de erros     | "Me ajude a entender esse erro"                                                                                                    | Identificação de causas raiz de falhas durante build   |
 | Validação das exceptions | "Quais validações ainda posso adicionar nessas classes?"                                                                           | Sugestões de validações adicionais que implementei     |
+| Integração Frontend      | "Criar painel administrativo em Angular com abas para operações, configurações e relatórios com tratamento RFC 7807"               | Esqueleto do componente, rotas HTTP e bindings básicos  |
 
 ## 2. Onde a IA alucinou / gerou código inseguro (e como corrigi)
 

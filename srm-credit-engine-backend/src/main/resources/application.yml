@@ -26,4 +26,8 @@ springdoc:
 
 logging:
   level:
-    com.srm.credit: DEBUG
+    com.srm.credit: INFO
+    com.srm.credit.service: DEBUG
+    com.srm.credit.service.pricing.PricingCalculator: TRACE
+    com.srm.credit.exception: INFO
+    org.springframework.web: WARN

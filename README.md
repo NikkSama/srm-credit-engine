@@ -8,6 +8,7 @@ Desafio técnico — Nível Pleno
 
 | Camada | Tecnologia |
 | --- | --- |
+| Frontend | Angular 17+ (Standalone Components), Bootstrap/CSS, HttpClient |
 | Backend | Java 21, Spring Boot 4, Spring Data JPA, JdbcTemplate |
 | Banco | PostgreSQL 16 + Flyway |
 | Docs API | springdoc-openapi (Swagger UI) |
@@ -16,6 +17,7 @@ Desafio técnico — Nível Pleno
 ## Arquitetura em camadas
 
 ```
+frontend/    → Camada de Apresentação (Abas operacionais, relatórios e captura de erros RFC 7807)
 controller/  → Camada de Aplicação (REST, DTOs, validação)
 service/     → Camada de Negócio (Strategy, orquestração @Transactional)
 repository/  → Camada de Persistência (JPA)
@@ -47,6 +49,7 @@ docker compose up --build
 
 - API: http://localhost:8080
 - Swagger UI: http://localhost:8080/swagger-ui.html
+- Interface do Operador: http://localhost:4200
 
 ## Endpoints principais
 
@@ -98,6 +101,7 @@ Cobre as regras de precificação: spread por produto, múltiplos meses, combina
 - **Relatório com SQL nativo** (`JdbcTemplate` + filtros dinâmicos) em vez de ORM puro, priorizando performance analítica.
 - **RFC 7807 (`ProblemDetail`)** para erros padronizados via `@RestControllerAdvice`.
 - **Precificação híbrida (`Strategy + data-driven`)** — o monthly_spread por tipo de recebível continua no banco (adicionar produto comum = só um INSERT, sem deploy). O Strategy Pattern (PricingStrategy + PricingStrategyResolver) entra apenas quando o produto tem regra própria (ex.: CHEQUE_PRE_DATADO, com prêmio de risco por prazo); tipos sem estratégia caem no DefaultDataDrivenStrategy.
+- **Interface Reativa em Angular**: O painel do operador foi desacoplado em abas reutilizáveis usando arquitetura de *Standalone Components*. O consumo das rotas assíncronas do backend gerencia nativamente as estruturas da RFC 7807 (`HttpErrorResponse`), exibindo os alertas de validação e bloqueio de concorrência de forma tratada para o usuário.
 
 ## Uso de IA
 

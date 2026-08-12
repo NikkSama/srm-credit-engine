@@ -8,9 +8,11 @@ import com.srm.credit.repository.CurrencyRepository;
 import com.srm.credit.repository.ExchangeRateRepository;
 import java.time.Instant;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 public class ExchangeRateService {
 
@@ -25,6 +27,9 @@ public class ExchangeRateService {
 
     @Transactional
     public ExchangeRate upsert(ExchangeRateRequest request) {
+        log.info("Attempting to upsert exchange rate for pair: {} -> {}",
+                request.baseCurrency(), request.quoteCurrency());
+
         Currency base = resolveCurrency(request.baseCurrency());
         Currency quote = resolveCurrency(request.quoteCurrency());
 
@@ -33,17 +38,26 @@ public class ExchangeRateService {
         newRate.setQuoteCurrency(quote);
         newRate.setRate(request.rate());
         newRate.setValidAt(Instant.now());
-        return rateRepository.save(newRate);
+
+        ExchangeRate savedRate = rateRepository.save(newRate);
+        log.info("Exchange rate saved successfully. ID: {}, Pair: {} -> {}, Rate: {}",
+                savedRate.getId(), request.baseCurrency(), request.quoteCurrency(), savedRate.getRate());
+
+        return savedRate;
     }
 
     @Transactional(readOnly = true)
     public List<ExchangeRate> listAll() {
+        log.debug("Listing all exchange rates");
         return rateRepository.findAll();
     }
 
-    //valida moeda
+    //currency validator
     private Currency resolveCurrency(String code) {
         return currencyRepository.findByCode(code)
-                .orElseThrow(() -> new ResourceNotFoundException("Currency not found: " + code));
+                .orElseThrow(() -> {
+                    log.warn("Currency validation failed. Code not found: {}", code);
+                    return new ResourceNotFoundException("Currency not found: " + code);
+                });
     }
 }

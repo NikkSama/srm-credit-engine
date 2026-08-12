@@ -4,7 +4,12 @@
 
 INSERT INTO currency (code, name) VALUES
     ('BRL', 'Real Brasileiro'),
-    ('USD', 'Dolar Americano');
+    ('USD', 'Dolar Americano'),
+    ('EUR', 'Euro'),
+    ('ARS', 'Peso Argentino'),
+    ('MXN', 'Peso Mexicano'),
+    ('CLP', 'Peso Chileno'),
+    ('COP', 'Peso Colombiano');
 
 INSERT INTO receivable_type (name, monthly_spread) VALUES
     ('DUPLICATA_MERCANTIL', 0.015),
