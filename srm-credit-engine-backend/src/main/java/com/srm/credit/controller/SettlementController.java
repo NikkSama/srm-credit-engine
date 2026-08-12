@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,6 +32,7 @@ public class SettlementController {
     }
 
     /** Prices and persists the settlement atomically. */
+    @Transactional
     @PostMapping
     public ResponseEntity<SettlementResponse> create(@Valid @RequestBody SettlementRequest request) {
         log.info("Creating settlement for request: {}", request);
