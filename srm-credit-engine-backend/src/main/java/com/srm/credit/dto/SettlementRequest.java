@@ -1,11 +1,8 @@
 package com.srm.credit.dto;
 
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Digits;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import com.srm.credit.validation.ValueOfEnum;
+import jakarta.validation.constraints.*;
+
 import java.math.BigDecimal;
 
 /**
@@ -25,7 +22,6 @@ public record SettlementRequest(
         @NotNull @DecimalMin(value = "0.01") @Digits(integer = 16, fraction = 2) BigDecimal faceValue,
         @NotNull @Min(1) Integer termMonths,
         @NotNull @DecimalMin(value = "0.0") @Digits(integer = 3, fraction = 6) BigDecimal baseRate,
-        @NotBlank @Size(min = 3, max = 3) String originalCurrency,
-        @NotBlank @Size(min = 3, max = 3) String paymentCurrency
-) {
-}
+        @NotBlank @ValueOfEnum(enumClass = com.srm.credit.domain.CurrencyCode.class) String originalCurrency,
+        @NotBlank @ValueOfEnum(enumClass = com.srm.credit.domain.CurrencyCode.class) String paymentCurrency
+) {}

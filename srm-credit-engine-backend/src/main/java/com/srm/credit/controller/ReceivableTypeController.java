@@ -8,10 +8,12 @@ import java.util.List;
 import com.srm.credit.mapper.ReceivableTypeMapper;
 import com.srm.credit.service.ReceivableTypeService;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/receivable-types")
 public class ReceivableTypeController {
@@ -26,11 +28,13 @@ public class ReceivableTypeController {
 
     @GetMapping
     public ResponseEntity<List<ReceivableTypeResponse>> list() {
+        log.info("Listing all receivable types");
         return ResponseEntity.ok().body(service.list());
     }
 
     @PostMapping
     public ResponseEntity<ReceivableTypeResponse> create(@Valid @RequestBody ReceivableTypeRequest request) {
+        log.info("Creating a receivable type for request: {}", request.name());
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(service.create(request)));
     }
 }

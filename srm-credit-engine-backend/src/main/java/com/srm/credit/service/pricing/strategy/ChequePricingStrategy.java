@@ -1,6 +1,7 @@
 package com.srm.credit.service.pricing.strategy;
 
 import java.math.BigDecimal;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Component;
  * {@value #TERM_THRESHOLD} months, reflecting the higher default risk of
  * longer-dated cheques.
  */
+@Slf4j
 @Component
 public class ChequePricingStrategy implements PricingStrategy {
 
@@ -26,9 +28,19 @@ public class ChequePricingStrategy implements PricingStrategy {
     public BigDecimal resolveSpread(PricingContext ctx) {
         BigDecimal extra = BigDecimal.ZERO;
         if (ctx.termMonths() > TERM_THRESHOLD) {
-            extra = RISK_PREMIUM_PER_MONTH.multiply(
-                    BigDecimal.valueOf(ctx.termMonths() - TERM_THRESHOLD));
+            int overThresholdMonths = ctx.termMonths() - TERM_THRESHOLD;
+            extra = RISK_PREMIUM_PER_MONTH.multiply(BigDecimal.valueOf(overThresholdMonths));
+
+            log.debug("Cheque risk premium applied - Term: {} months, Over threshold: {} months, Extra spread added: {}",
+                    ctx.termMonths(), overThresholdMonths, extra);
+        } else {
+            log.debug("Cheque term {} months is within safety threshold (<= {}). No risk premium added",
+                    ctx.termMonths(), TERM_THRESHOLD);
         }
-        return ctx.monthlySpread().add(extra);
+
+        BigDecimal totalSpread = ctx.monthlySpread().add(extra);
+        log.debug("Cheque pricing final spread calculated: {} (Base: {})", totalSpread, ctx.monthlySpread());
+
+        return totalSpread;
     }
 }

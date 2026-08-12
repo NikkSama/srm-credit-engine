@@ -1,14 +1,13 @@
 package com.srm.credit.dto;
 
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import com.srm.credit.domain.CurrencyCode;
+import com.srm.credit.validation.ValueOfEnum;
+import jakarta.validation.constraints.*;
+
 import java.math.BigDecimal;
 
 public record ExchangeRateRequest(
-        @NotBlank @Size(min = 3, max = 3) String baseCurrency,
-        @NotBlank @Size(min = 3, max = 3) String quoteCurrency,
-        @NotNull @DecimalMin(value = "0.00000001") BigDecimal rate
-) {
+        @NotBlank  @ValueOfEnum(enumClass = CurrencyCode.class) String baseCurrency,
+        @NotBlank @ValueOfEnum(enumClass = CurrencyCode.class) String quoteCurrency,
+        @NotNull @DecimalMin(value = "0.00000001") @Digits(integer = 9, fraction = 8) BigDecimal rate) {
 }

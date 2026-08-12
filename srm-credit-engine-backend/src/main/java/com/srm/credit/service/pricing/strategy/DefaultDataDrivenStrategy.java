@@ -1,6 +1,7 @@
 package com.srm.credit.service.pricing.strategy;
 
 import java.math.BigDecimal;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Component;
  * receivable type in the database. Used for any type without a dedicated
  * strategy, so new products can still be added via data only.
  */
+@Slf4j
 @Component
 public class DefaultDataDrivenStrategy implements PricingStrategy {
 
@@ -20,6 +22,8 @@ public class DefaultDataDrivenStrategy implements PricingStrategy {
 
     @Override
     public BigDecimal resolveSpread(PricingContext ctx) {
+        log.debug("Using fallback data-driven spread for type '{}'. Applying base database spread: {}",
+                ctx.receivableType(), ctx.monthlySpread());
         return ctx.monthlySpread();
     }
 }
