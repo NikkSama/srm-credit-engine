@@ -1,0 +1,49 @@
+:host {
+  display: block;
+}
+
+.panel {
+  border-radius: 28px;
+}
+
+.results-display {
+  display: grid;
+  gap: 12px;
+}
+
+.metric {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: #f8fafc;
+}
+
+.border-top {
+  border-top: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0;
+  padding-top: 16px;
+}
+
+.label {
+  color: #64748b;
+}
+
+.val,
+.valHighlight,
+.valFinal {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.valHighlight,
+.valFinal {
+  font-size: 1.15rem;
+}
+
+.placeholder-text {
+  margin: 0;
+  color: #475569;
+  line-height: 1.6;
+}

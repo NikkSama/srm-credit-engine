@@ -1,0 +1,54 @@
+:host {
+  display: block;
+}
+
+.panel {
+  border-radius: 28px;
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  align-items: end;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  width: calc(100% + 61rem);
+  margin-bottom: 1rem;
+}
+
+.table-shell {
+  margin-top: 20px;
+  overflow: auto;
+}
+
+.report-table {
+  width: 100%;
+  min-width: 860px;
+}
+
+.badge {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.placeholder-text {
+  margin: 16px 0 0;
+  color: #475569;
+}
+
+@media (max-width: 1200px) {
+  .filter-grid {
+    grid-template-columns: 1fr;
+  }
+}

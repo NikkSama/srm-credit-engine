@@ -8,7 +8,7 @@ Desafio técnico — Nível Pleno
 
 | Camada | Tecnologia |
 | --- | --- |
-| Frontend | Angular 17+ (Standalone Components), Bootstrap/CSS, HttpClient |
+| Frontend | Angular 17+ (Standalone Components), Angular Material, CSS, HttpClient |
 | Backend | Java 21, Spring Boot 4, Spring Data JPA, JdbcTemplate |
 | Banco | PostgreSQL 16 + Flyway |
 | Docs API | springdoc-openapi (Swagger UI) |
@@ -102,6 +102,8 @@ Cobre as regras de precificação: spread por produto, múltiplos meses, combina
 - **RFC 7807 (`ProblemDetail`)** para erros padronizados via `@RestControllerAdvice`.
 - **Precificação híbrida (`Strategy + data-driven`)** — o monthly_spread por tipo de recebível continua no banco (adicionar produto comum = só um INSERT, sem deploy). O Strategy Pattern (PricingStrategy + PricingStrategyResolver) entra apenas quando o produto tem regra própria (ex.: CHEQUE_PRE_DATADO, com prêmio de risco por prazo); tipos sem estratégia caem no DefaultDataDrivenStrategy.
 - **Interface Reativa em Angular**: O painel do operador foi desacoplado em abas reutilizáveis usando arquitetura de *Standalone Components*. O consumo das rotas assíncronas do backend gerencia nativamente as estruturas da RFC 7807 (`HttpErrorResponse`), exibindo os alertas de validação e bloqueio de concorrência de forma tratada para o usuário.
+- **Interface Reativa em Angular com Angular Material e Signals**: O painel do operador adota os conceitos modernos de reatividade do Angular 17+, substituindo os bindings tradicionais e decoradores antigos (`@Input`, `@Output`) por **Signals (`input()`, `output()`)**, otimizando a estratégia `ChangeDetectionStrategy.OnPush`. A interface visual utiliza os componentes de design oficial do Google (**Angular Material** via `mat-card`, `mat-table`, `mat-form-field`), fornecendo uma experiência limpa para o operador, enquanto gerencia de forma assíncrona as respostas e falhas padronizadas da RFC 7807.
+
 
 ## Uso de IA
 
