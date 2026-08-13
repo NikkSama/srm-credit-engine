@@ -1,0 +1,65 @@
+<div class="dashboard-container">
+  <header class="header-shell">
+    <h1>SRM Credit Operations Control Panel</h1>
+    <nav class="tabs">
+      <button
+        mat-button
+        (click)="activeTab = 'settlement'"
+        [class.active]="activeTab === 'settlement'"
+      >
+        Credit Desk (Settlements)
+      </button>
+      <button mat-button (click)="activeTab = 'config'" [class.active]="activeTab === 'config'">
+        System Setup (Rates & Types)
+      </button>
+    </nav>
+  </header>
+
+  @if (errorMessage) {
+    <mat-card class="toast error"
+      ><mat-card-content><strong>Blocked:</strong> {{ errorMessage }}</mat-card-content></mat-card
+    >
+  }
+
+  @if (successMessage) {
+    <mat-card class="toast success"
+      ><mat-card-content><strong>Success:</strong> {{ successMessage }}</mat-card-content></mat-card
+    >
+  }
+
+  @if (activeTab === 'settlement') {
+    <main class="tab-content">
+      <div class="panel-grid settlement-grid">
+        <app-dashboard-settlement
+          [settlementForm]="settlementForm"
+          [receivableTypes]="receivableTypes"
+          (simulate)="onSimulate()"
+          (create)="onCreateSettlement()"
+        />
+
+        <app-dashboard-result [settlementResult]="settlementResult" />
+
+        <app-dashboard-report
+          class="report-panel"
+          [reportFilters]="reportFilters"
+          [reportRows]="reportRows"
+          [columns]="reportColumns"
+          (report)="onReport($event)"
+        />
+      </div>
+    </main>
+  }
+
+  @if (activeTab === 'config') {
+    <main class="tab-content">
+      <app-dashboard-config
+        [typeForm]="newTypeForm"
+        [rateForm]="newRateForm"
+        [receivableTypes]="receivableTypes"
+        [exchangeRates]="exchangeRates"
+        (createType)="onCreateType()"
+        (upsertRate)="onUpsertRate()"
+      />
+    </main>
+  }
+</div>
