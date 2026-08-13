@@ -1,0 +1,85 @@
+<mat-card class="panel">
+  <mat-card-header>
+    <mat-card-title>Settlement Statement Reports</mat-card-title>
+  </mat-card-header>
+  <mat-card-content>
+    <form (ngSubmit)="submitReport()" #filterForm="ngForm" class="filter-grid">
+      @if (reportFilters(); as filters) {
+        <mat-form-field appearance="outline">
+          <mat-label>Assignor</mat-label>
+          <input matInput type="text" [(ngModel)]="filters.assignor" name="filterAssignor" />
+        </mat-form-field>
+      }
+
+      <mat-form-field appearance="outline">
+        <mat-label>Currency</mat-label>
+        <input
+          matInput
+          type="text"
+          [(ngModel)]="reportFilters()!.paymentCurrency"
+          name="filterCurrency"
+          placeholder="e.g., BRL"
+        />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>From Date</mat-label>
+        <input matInput type="date" [(ngModel)]="reportFilters()!.from" name="filterFrom" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>To Date</mat-label>
+        <input matInput type="date" [(ngModel)]="reportFilters()!.to" name="filterTo" />
+      </mat-form-field>
+
+      <div class="actions">
+        <button mat-flat-button color="primary" type="submit">Generate Report</button>
+      </div>
+    </form>
+
+    <mat-divider></mat-divider>
+
+    <div class="table-shell">
+      @if (reportRows().length > 0) {
+        <table mat-table [dataSource]="reportRows()" class="report-table mat-elevation-z0">
+          <ng-container matColumnDef="id">
+            <th mat-header-cell *matHeaderCellDef>ID</th>
+            <td mat-cell *matCellDef="let row">{{ row.id }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="assignor">
+            <th mat-header-cell *matHeaderCellDef>Assignor</th>
+            <td mat-cell *matCellDef="let row">{{ row.assignor }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="faceValue">
+            <th mat-header-cell *matHeaderCellDef>Face Value</th>
+            <td mat-cell *matCellDef="let row">{{ row.faceValue | number: '1.2-2' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="netValuePaid">
+            <th mat-header-cell *matHeaderCellDef>Net Paid</th>
+            <td mat-cell *matCellDef="let row">{{ row.netValuePaid | number: '1.2-2' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="paymentCurrency">
+            <th mat-header-cell *matHeaderCellDef>Currency</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="badge">{{ row.paymentCurrency }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="createdAt">
+            <th mat-header-cell *matHeaderCellDef>Created At</th>
+            <td mat-cell *matCellDef="let row">{{ row.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="columns()"></tr>
+          <tr mat-row *matRowDef="let row; columns: columns()"></tr>
+        </table>
+      } @else {
+        <p class="placeholder-text">No report records found for the selected filters.</p>
+      }
+    </div>
+  </mat-card-content>
+</mat-card>

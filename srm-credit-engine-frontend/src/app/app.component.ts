@@ -1,12 +1,10 @@
 import { Component } from '@angular/core';
-import { DashboardComponent } from './dashboard.component';
+import { Dashboard } from './features/dashboard/dashboard';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [DashboardComponent],
-  template: '<app-dashboard></app-dashboard>'
+  imports: [Dashboard],
+  template: '<app-dashboard />',
 })
-export class AppComponent {
-  title = 'srm-credit-ui';
-}
+export class AppComponent {}

@@ -1,0 +1,103 @@
+<div class="config-grid">
+  <mat-card class="panel">
+    <mat-card-header>
+      <mat-card-title>Create Receivable Type</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form (ngSubmit)="createType.emit()" class="form-grid single-column">
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Type Code Name</mat-label>
+          <input
+            matInput
+            type="text"
+            [(ngModel)]="typeForm()!.name"
+            name="newTypeName"
+            placeholder="e.g., DUPLICATA_MERCANTIL"
+            required
+          />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Monthly Spread</mat-label>
+          <input
+            matInput
+            type="number"
+            step="0.0001"
+            [(ngModel)]="typeForm()!.monthlySpread"
+            name="monthlySpread"
+            placeholder="0.0001"
+            required
+          />
+        </mat-form-field>
+
+        <div class="actions full">
+          <button mat-flat-button color="primary" type="submit">Save Type</button>
+        </div>
+      </form>
+      <mat-divider></mat-divider>
+      <h4>Active System Spreads</h4>
+      <ul>
+        @for (type of receivableTypes(); track type.id) {
+          <li>{{ type.name }} (Spread: {{ type.monthlySpread }})</li>
+        }
+      </ul>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="panel">
+    <mat-card-header>
+      <mat-card-title>Upsert Foreign Exchange Rate</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form (ngSubmit)="upsertRate.emit()" class="form-grid single-column">
+        <div class="inline-grid full">
+          <mat-form-field appearance="outline">
+            <mat-label>Base (USD)</mat-label>
+            <input
+              matInput
+              type="text"
+              [(ngModel)]="rateForm()!.baseCurrency"
+              name="baseC"
+              placeholder="Base (USD)"
+              required
+            />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Quote (BRL)</mat-label>
+            <input
+              matInput
+              type="text"
+              [(ngModel)]="rateForm()!.quoteCurrency"
+              name="quoteC"
+              placeholder="Quote (BRL)"
+              required
+            />
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Target Multiplier Rate</mat-label>
+          <input
+            matInput
+            type="number"
+            step="0.0001"
+            [(ngModel)]="rateForm()!.rate"
+            name="fxRate"
+            required
+          />
+        </mat-form-field>
+
+        <div class="actions full">
+          <button mat-flat-button color="primary" type="submit">Update FX Matrix</button>
+        </div>
+      </form>
+      <mat-divider></mat-divider>
+      <h4>Live Currency Matrix</h4>
+      <ul>
+        @for (rate of exchangeRates(); track rate.id) {
+          <li>{{ rate.baseCurrency }} → {{ rate.quoteCurrency }} = {{ rate.rate }}</li>
+        }
+      </ul>
+    </mat-card-content>
+  </mat-card>
+</div>

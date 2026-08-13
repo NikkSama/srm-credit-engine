@@ -1,0 +1,107 @@
+<mat-card class="panel">
+  <mat-card-header>
+    <mat-card-title>New Settlement Request</mat-card-title>
+  </mat-card-header>
+
+  <mat-card-content>
+    <form #opsForm="ngForm" class="form-grid">
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Assignor</mat-label>
+        <input
+          matInput
+          type="text"
+          [(ngModel)]="settlementForm()!.assignor"
+          name="assignor"
+          required
+        />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Receivable Type</mat-label>
+        <mat-select [(ngModel)]="settlementForm()!.receivableType" name="receivableType" required>
+          @for (type of receivableTypes(); track type.id) {
+            <mat-option [value]="type.name">{{ type.name }}</mat-option>
+          } @empty {
+            <mat-option value="CHEQUE_PRE_DATADO">CHEQUE_PRE_DATADO (Fallback)</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Face Value</mat-label>
+        <input
+          matInput
+          type="number"
+          [(ngModel)]="settlementForm()!.faceValue"
+          name="faceValue"
+          required
+        />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Term (Months)</mat-label>
+        <input
+          matInput
+          type="number"
+          [(ngModel)]="settlementForm()!.termMonths"
+          name="termMonths"
+          required
+        />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Base Monthly Rate</mat-label>
+        <input
+          matInput
+          type="number"
+          step="0.0001"
+          [(ngModel)]="settlementForm()!.baseRate"
+          name="baseRate"
+          required
+        />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>From Currency</mat-label>
+        <input
+          matInput
+          type="text"
+          [(ngModel)]="settlementForm()!.originalCurrency"
+          name="origCurr"
+          required
+        />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>To Currency</mat-label>
+        <input
+          matInput
+          type="text"
+          [(ngModel)]="settlementForm()!.paymentCurrency"
+          name="payCurr"
+          required
+        />
+      </mat-form-field>
+
+      <div class="full actions">
+        <button
+          mat-stroked-button
+          type="button"
+          (click)="simulate.emit()"
+          [disabled]="!opsForm.valid"
+        >
+          Simulate Math
+        </button>
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          (click)="create.emit()"
+          [disabled]="!opsForm.valid"
+        >
+          Execute Transaction
+        </button>
+      </div>
+    </form>
+  </mat-card-content>
+</mat-card>
